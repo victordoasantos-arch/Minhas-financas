@@ -169,10 +169,23 @@ try {
         try {
           const { data, error } = await supabaseClient.from("financas").select("dados").eq("id", "principal").single();
           if (!error && data && data.dados) {
-            setLancamentos(data.dados.lancamentos || []);
-            setContasFixas(data.dados.contasFixas || []);
-            setBancos(data.dados.bancos || []);
-            setParcelamentos(data.dados.parcelamentos || []);
+            const lancsCarregados = data.dados.lancamentos || [];
+            const contasCarregadas = data.dados.contasFixas || [];
+            const bancosCarregados = data.dados.bancos || [];
+            const parcelamentosCarregados = data.dados.parcelamentos || [];
+            const parcelamentosFinal = escanearParcelamentosRetroativos(lancsCarregados, parcelamentosCarregados);
+            setLancamentos(lancsCarregados);
+            setContasFixas(contasCarregadas);
+            setBancos(bancosCarregados);
+            setParcelamentos(parcelamentosFinal);
+            if (parcelamentosFinal.length !== parcelamentosCarregados.length) {
+              supabaseClient.from("financas").update({
+                dados: { lancamentos: lancsCarregados, contasFixas: contasCarregadas, bancos: bancosCarregados, parcelamentos: parcelamentosFinal },
+                atualizado_em: (/* @__PURE__ */ new Date()).toISOString()
+              }).eq("id", "principal").then(({ error: err2 }) => {
+                if (err2) setSaveError(true);
+              });
+            }
           }
         } catch (e) {
           console.error(e);
@@ -226,6 +239,19 @@ try {
         totalParcelas: info.total
       };
       return [...listaAtual, novo];
+    }
+    function escanearParcelamentosRetroativos(lancs, parcelamentosIniciais) {
+      let resultado = parcelamentosIniciais;
+      for (const l of lancs) {
+        if (!l.descricao) continue;
+        const mParc = l.descricao.match(/parcela\s+(\d+)\s*(?:de|\/)\s*(\d+)/i);
+        if (!mParc) continue;
+        const atual = parseInt(mParc[1], 10), total = parseInt(mParc[2], 10);
+        if (total <= atual) continue;
+        const descBase = l.descricao.replace(mParc[0], "").replace(/\s{2,}/g, " ").trim();
+        resultado = registrarParcelamento({ atual, total, descBase }, l, resultado);
+      }
+      return resultado;
     }
     function gerarParcelasVirtuais(ano, mes, listaParcelamentos) {
       const virtuais = [];
