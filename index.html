@@ -43,7 +43,19 @@
 
 <script>
 try {
-  let formatBRL2 = function(v) {
+  let mesDaFatura2 = function(dataStr, diaFechamento) {
+    const [ano, mes, dia] = dataStr.split("-").map(Number);
+    let mesIdx = mes - 1;
+    let anoAjustado = ano;
+    if (dia > diaFechamento) {
+      mesIdx += 1;
+      if (mesIdx > 11) {
+        mesIdx = 0;
+        anoAjustado += 1;
+      }
+    }
+    return { ano: anoAjustado, mes: mesIdx };
+  }, formatBRL2 = function(v) {
     return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }, todayISO2 = function() {
     return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
@@ -446,6 +458,13 @@ try {
     }
     const doMes = useMemo(() => {
       const reais = lancamentos.filter((l) => {
+        if (l.tipo === "cartao" && l.cartaoId) {
+          const cartaoInfo = CARTOES.find((c) => c.id === l.cartaoId);
+          if (cartaoInfo) {
+            const { ano, mes } = mesDaFatura2(l.data, cartaoInfo.fechamento);
+            return mes === mesAtual && ano === anoAtual;
+          }
+        }
         const d = /* @__PURE__ */ new Date(l.data + "T00:00:00");
         return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
       });
@@ -617,7 +636,7 @@ try {
   }, submitBtnStyle2 = function(cor) {
     return { marginTop: 16, width: "100%", padding: 13, borderRadius: 10, border: "none", background: cor, color: "#12140F", fontWeight: 700, fontSize: 14, cursor: "pointer" };
   };
-  var formatBRL = formatBRL2, todayISO = todayISO2, normalizar = normalizar2, diasParaVencimento = diasParaVencimento2, parseRapido = parseRapido2, App = App2, ResumoCard = ResumoCard2, SectionBlock = SectionBlock2, EmptyHint = EmptyHint2, Modal = Modal2, ModalHeader = ModalHeader2, tipoBtnStyle = tipoBtnStyle2, submitBtnStyle = submitBtnStyle2;
+  var mesDaFatura = mesDaFatura2, formatBRL = formatBRL2, todayISO = todayISO2, normalizar = normalizar2, diasParaVencimento = diasParaVencimento2, parseRapido = parseRapido2, App = App2, ResumoCard = ResumoCard2, SectionBlock = SectionBlock2, EmptyHint = EmptyHint2, Modal = Modal2, ModalHeader = ModalHeader2, tipoBtnStyle = tipoBtnStyle2, submitBtnStyle = submitBtnStyle2;
   if (!window.React || !window.ReactDOM) {
     throw new Error("React n\xE3o carregou. Verifique sua conex\xE3o com a internet e recarregue a p\xE1gina.");
   }
@@ -627,11 +646,11 @@ try {
   const { useState, useEffect, useMemo } = React;
   const supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   const CARTOES = [
-    { id: "bradesco", nome: "Bradesco Visa", vencimento: 10, cor: "#CC092F", texto: "#FFFFFF" },
-    { id: "c6", nome: "C6 Bank", vencimento: 20, cor: "#111111", texto: "#FFDD00" },
-    { id: "mp", nome: "Mercado Pago", vencimento: 20, cor: "#009EE3", texto: "#FFFFFF" },
-    { id: "amex", nome: "Amex Platinum", vencimento: 25, cor: "#5C6670", texto: "#F1E7D0" },
-    { id: "viacredi", nome: "Viacredi", vencimento: 22, cor: "#00A551", texto: "#FFFFFF" }
+    { id: "bradesco", nome: "Bradesco Visa", vencimento: 10, fechamento: 29, cor: "#CC092F", texto: "#FFFFFF" },
+    { id: "c6", nome: "C6 Bank", vencimento: 20, fechamento: 14, cor: "#111111", texto: "#FFDD00" },
+    { id: "mp", nome: "Mercado Pago", vencimento: 20, fechamento: 15, cor: "#009EE3", texto: "#FFFFFF" },
+    { id: "amex", nome: "Amex Platinum", vencimento: 25, fechamento: 13, cor: "#5C6670", texto: "#F1E7D0" },
+    { id: "viacredi", nome: "Viacredi", vencimento: 22, fechamento: 11, cor: "#00A551", texto: "#FFFFFF" }
   ];
   const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const TIPOS = {
