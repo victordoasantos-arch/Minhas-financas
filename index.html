@@ -728,7 +728,14 @@ try {
   }, EmptyHint2 = function({ text }) {
     return /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "20px 10px", color: "#6E7466", fontSize: 13, border: "1px dashed #262922", borderRadius: 10 } }, text);
   }, Modal2 = function({ onClose, children }) {
-    return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 50 }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "#181B15", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: "20px 20px 28px", width: "100%", maxWidth: 720, margin: "0 auto", border: "1px solid #262922", borderBottom: "none", maxHeight: "85vh", overflowY: "auto" } }, children));
+    useEffect(() => {
+      const overflowAnterior = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = overflowAnterior;
+      };
+    }, []);
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 50, overscrollBehavior: "contain" }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "#181B15", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: "20px 20px 28px", width: "100%", maxWidth: 720, margin: "0 auto", border: "1px solid #262922", borderBottom: "none", maxHeight: "85vh", overflowY: "auto", overscrollBehavior: "contain" } }, children));
   }, ModalHeader2 = function({ title, onClose }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("h2", { className: "disp", style: { margin: 0, fontSize: 17 } }, title), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onClose, style: { background: "none", border: "none", color: "#A6ABA0", cursor: "pointer", fontSize: 18 } }, "\xD7"));
   }, tipoBtnStyle2 = function(ativo, cor) {
