@@ -43,16 +43,22 @@
 
 <script>
 try {
-  let mesDaFatura2 = function(dataStr, diaFechamento) {
+  let mesDaFatura2 = function(dataStr, diaFechamento, diaVencimento) {
     const [ano, mes, dia] = dataStr.split("-").map(Number);
     let mesIdx = mes - 1;
     let anoAjustado = ano;
     if (dia > diaFechamento) {
       mesIdx += 1;
-      if (mesIdx > 11) {
-        mesIdx = 0;
-        anoAjustado += 1;
-      }
+    }
+    if (typeof diaVencimento === "number" && diaVencimento < diaFechamento) {
+      mesIdx += 1;
+    }
+    if (mesIdx > 11) {
+      mesIdx -= 12;
+      anoAjustado += 1;
+    } else if (mesIdx < 0) {
+      mesIdx += 12;
+      anoAjustado -= 1;
     }
     return { ano: anoAjustado, mes: mesIdx };
   }, formatBRL2 = function(v) {
@@ -501,7 +507,7 @@ try {
         if (l.tipo === "cartao" && l.cartaoId) {
           const cartaoInfo = CARTOES.find((c) => c.id === l.cartaoId);
           if (cartaoInfo) {
-            const { ano, mes } = mesDaFatura2(l.data, cartaoInfo.fechamento);
+            const { ano, mes } = mesDaFatura2(l.data, cartaoInfo.fechamento, cartaoInfo.vencimento);
             return mes === mesAtual && ano === anoAtual;
           }
         }
