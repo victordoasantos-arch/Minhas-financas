@@ -101,7 +101,7 @@ try {
     else if (norm.some((w) => w === "conta")) tipo = "conta";
     else if (norm.some((w) => w === "credito" || w === "cartao")) tipo = "cartao";
     const PALAVRAS_TIPO = /* @__PURE__ */ new Set(["fixa", "fixo", "entrada", "recebi", "receita", "debito", "pix", "conta", "credito", "cartao"]);
-    let valor = null, cartaoId = null, bancoId = null, contaId = null, data = null, diaFixa = null, terceiro = null;
+    let valor = null, cartaoId = null, bancoId = null, contaId = null, data = null, diaFixa = null, terceiro = null, parcelasCount = null;
     const restantes = [];
     for (let i = 0; i < palavras.length; i++) {
       const p = palavras[i];
@@ -132,6 +132,22 @@ try {
         i += 1;
         continue;
       }
+      const matchVezesGrudado = pNorm.match(/^(\d+)x$/);
+      if (!parcelasCount && matchVezesGrudado) {
+        const n = parseInt(matchVezesGrudado[1], 10);
+        if (n > 1) {
+          parcelasCount = n;
+          continue;
+        }
+      }
+      if (!parcelasCount && /^\d+$/.test(p) && palavras[i + 1] && (norm[i + 1] === "x" || norm[i + 1] === "vezes")) {
+        const n = parseInt(p, 10);
+        if (n > 1) {
+          parcelasCount = n;
+          i += 1;
+          continue;
+        }
+      }
       if (valor === null && /^\d+([.,]\d+)?$/.test(p)) {
         valor = parseFloat(pNum);
         continue;
@@ -145,7 +161,17 @@ try {
     }
     if (valor === null) return null;
     if (!tipo) tipo = "cartao";
-    const descricao = restantes.join(" ").trim() || (tipo === "entrada" ? "Entrada" : tipo === "conta" ? "Conta" : tipo === "debito" ? "D\xE9bito" : tipo === "pix" ? "Pix" : "Gasto");
+    let descricao = restantes.join(" ").trim() || (tipo === "entrada" ? "Entrada" : tipo === "conta" ? "Conta" : tipo === "debito" ? "D\xE9bito" : tipo === "pix" ? "Pix" : "Gasto");
+    let valorFinal = valor;
+    let parcelaInfo = null;
+    if (parcelasCount) {
+      valorFinal = Math.round(valor / parcelasCount * 100) / 100;
+      const descBaseLimpa = descricao;
+      descricao = `${descBaseLimpa} parcela 1 de ${parcelasCount}`;
+      parcelaInfo = { atual: 1, total: parcelasCount, descBase: descBaseLimpa };
+    } else {
+      parcelaInfo = detectarParcela2(descricao);
+    }
     if (tipo === "conta" && !fixaFlag && contasFixas && contasFixas.length) {
       const descNorm = normalizar2(descricao);
       const match = contasFixas.find((c) => descNorm.includes(normalizar2(c.nome)) || normalizar2(c.nome).includes(descNorm));
@@ -164,8 +190,7 @@ try {
       bancoId = matchBanco ? matchBanco.id : bancos[0].id;
     }
     if (fixaFlag && !diaFixa && data) diaFixa = parseInt(data.slice(8, 10), 10);
-    const parcelaInfo = detectarParcela2(descricao);
-    return { tipo, valor, descricao, cartaoId, contaId, bancoId, data, fixaFlag, diaFixa, terceiro, parcelaInfo };
+    return { tipo, valor: valorFinal, descricao, cartaoId, contaId, bancoId, data, fixaFlag, diaFixa, terceiro, parcelaInfo };
   }, App2 = function() {
     const [lancamentos, setLancamentos] = useState([]);
     const [contasFixas, setContasFixas] = useState([]);
