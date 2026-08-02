@@ -316,12 +316,21 @@ try {
     }
     function registrarParcelamento(info, base, listaAtual) {
       const dataBase = base.data || todayISO2();
-      const [anoBase, mesBase1, diaBase] = dataBase.split("-").map(Number);
+      const [anoRaw, mesRaw1, diaBase] = dataBase.split("-").map(Number);
+      let anoBase = anoRaw, mesBaseIdx = mesRaw1 - 1;
+      if (base.tipo === "cartao" && base.cartaoId) {
+        const cartaoInfo = CARTOES.find((c) => c.id === base.cartaoId);
+        if (cartaoInfo) {
+          const fat = mesDaFatura2(dataBase, cartaoInfo.fechamento, cartaoInfo.vencimento);
+          anoBase = fat.ano;
+          mesBaseIdx = fat.mes;
+        }
+      }
       const chave = `${info.descBase}|${base.cartaoId || ""}|${base.terceiro || ""}|${info.total}`.toLowerCase();
       const existente = listaAtual.find((p) => p.chave === chave);
       if (existente) {
         if (info.atual > existente.parcelaBase) {
-          return listaAtual.map((p) => p === existente ? { ...p, parcelaBase: info.atual, anoBase, mesBase: mesBase1 - 1, dia: diaBase } : p);
+          return listaAtual.map((p) => p === existente ? { ...p, parcelaBase: info.atual, anoBase, mesBase: mesBaseIdx, dia: diaBase } : p);
         }
         return listaAtual;
       }
@@ -334,7 +343,7 @@ try {
         cartaoId: base.cartaoId || null,
         terceiro: base.terceiro || null,
         anoBase,
-        mesBase: mesBase1 - 1,
+        mesBase: mesBaseIdx,
         dia: diaBase,
         parcelaBase: info.atual,
         totalParcelas: info.total
