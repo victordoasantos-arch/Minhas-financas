@@ -469,7 +469,45 @@ try {
     function toggleCartaoPago(cartaoId) {
       const chave = chaveCartaoMes(cartaoId, anoAtual, mesAtual);
       const jaPago = cartoesPagos.includes(chave);
-      salvar({ cartoesPagos: jaPago ? cartoesPagos.filter((k) => k !== chave) : [...cartoesPagos, chave] });
+      if (jaPago) {
+        salvar({
+          cartoesPagos: cartoesPagos.filter((k) => k !== chave),
+          lancamentos: lancamentos.filter((l) => l.faturaChave !== chave)
+        });
+        return;
+      }
+      const cartao = CARTOES.find((c) => c.id === cartaoId);
+      const gastoCartao = gastosPorCartao.find((c) => c.id === cartaoId);
+      const sugestao = gastoCartao && gastoCartao.total ? gastoCartao.total.toFixed(2).replace(".", ",") : "";
+      const valorStr = window.prompt(`Valor pago na fatura do ${cartao.nome}:`, sugestao);
+      if (valorStr === null) return;
+      const valorNum = parseFloat(valorStr.replace(",", "."));
+      if (isNaN(valorNum) || valorNum <= 0) {
+        setImportStatus({ ok: false, msg: "Valor inv\xE1lido \u2014 a fatura n\xE3o foi marcada como paga." });
+        return;
+      }
+      const bancoMatch = todosBancos.find((b) => normalizar2(b.nome) === normalizar2(cartao.nome));
+      const diaPagamento = Math.min(cartao.vencimento, 28);
+      const dataLancamento = new Date(anoAtual, mesAtual, diaPagamento).toISOString().slice(0, 10);
+      const novoLancamento = {
+        id: Date.now().toString() + "fat",
+        tipo: "debito",
+        descricao: `Fatura ${cartao.nome}`,
+        valor: valorNum,
+        data: dataLancamento,
+        cartaoId: null,
+        contaId: null,
+        bancoId: bancoMatch ? bancoMatch.id : null,
+        terceiro: null,
+        faturaChave: chave
+      };
+      salvar({
+        cartoesPagos: [...cartoesPagos, chave],
+        lancamentos: [novoLancamento, ...lancamentos]
+      });
+      if (!bancoMatch) {
+        setImportStatus({ ok: true, msg: `Fatura marcada como paga, mas n\xE3o achei uma conta banc\xE1ria "${cartao.nome}" pra debitar o valor. Cadastre uma conta banc\xE1ria com esse nome.` });
+      }
     }
     function addLancamento(e) {
       e.preventDefault();
@@ -501,6 +539,14 @@ try {
         if (item) {
           salvar({ parcelamentos: parcelamentos.map((p) => p.id === item.parcelamentoId ? { ...p, totalParcelas: item.parcelaAlvo - 1 } : p) });
         }
+        return;
+      }
+      const item = lancamentos.find((l) => l.id === id);
+      if (item && item.faturaChave) {
+        salvar({
+          lancamentos: lancamentos.filter((l) => l.id !== id),
+          cartoesPagos: cartoesPagos.filter((k) => k !== item.faturaChave)
+        });
         return;
       }
       salvar({ lancamentos: lancamentos.filter((l) => l.id !== id) });
