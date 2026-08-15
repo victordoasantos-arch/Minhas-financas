@@ -694,7 +694,7 @@ try {
     const todosBancos = [...fixosComHistorico, ...extras];
     const statusBancos = todosBancos.map((b) => {
       const entradas = lancamentos.filter((l) => l.tipo === "entrada" && l.bancoId === b.id).reduce((s, l) => s + l.valor, 0);
-      const saidas = lancamentos.filter((l) => (l.tipo === "debito" || l.tipo === "pix" || l.tipo === "conta") && l.bancoId === b.id && !l.terceiro).reduce((s, l) => s + l.valor, 0);
+      const saidas = lancamentos.filter((l) => (l.tipo === "debito" || l.tipo === "pix" || l.tipo === "conta") && l.bancoId === b.id).reduce((s, l) => s + l.valor, 0);
       return { ...b, saldoAtual: (b.saldoInicial || 0) + entradas - saidas, fixo: nomesFixosNorm.includes(normalizar2(b.nome)) };
     });
     const totalInvestido = investimentos.reduce((s, i) => s + (i.valorInvestido || 0), 0);
