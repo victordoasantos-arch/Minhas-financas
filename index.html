@@ -350,10 +350,15 @@ try {
         }
       }
       const chave = `${info.descBase}|${base.cartaoId || ""}|${base.terceiro || ""}|${info.total}`.toLowerCase();
-      const existente = listaAtual.find((p) => p.chave === chave);
+      const existente = listaAtual.find((p) => p.chave === chave || (p.descBase === info.descBase && (p.cartaoId || null) === (base.cartaoId || null) && p.totalParcelas === info.total));
       if (existente) {
-        if (info.atual > existente.parcelaBase) {
-          return listaAtual.map((p) => p === existente ? { ...p, parcelaBase: info.atual, anoBase, mesBase: mesBaseIdx, dia: diaBase } : p);
+        const avancouParcela = info.atual > existente.parcelaBase;
+        const mudouTerceiro = (existente.terceiro || null) !== (base.terceiro || null);
+        if (avancouParcela) {
+          return listaAtual.map((p) => p === existente ? { ...p, parcelaBase: info.atual, anoBase, mesBase: mesBaseIdx, dia: diaBase, terceiro: base.terceiro || null, chave } : p);
+        }
+        if (mudouTerceiro || existente.chave !== chave) {
+          return listaAtual.map((p) => p === existente ? { ...p, terceiro: base.terceiro || null, chave } : p);
         }
         return listaAtual;
       }
